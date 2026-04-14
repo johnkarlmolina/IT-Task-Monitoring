@@ -1,17 +1,18 @@
 import React from 'react';
-import type { Task } from '../interfaces';
+import type { Holiday, Task } from '../interfaces';
 import CalendarDay from './CalendarDay';
 
 interface CalendarGridProps {
   date: Date;
   tasks: Task[];
+  holidays?: Holiday[];
   onDayClick: (date: Date) => void;
   onToggleComplete: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (task: Task) => void;
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ date, tasks, onDayClick, onToggleComplete, onDelete, onEdit }) => {
+const CalendarGrid: React.FC<CalendarGridProps> = ({ date, tasks, holidays = [], onDayClick, onToggleComplete, onDelete, onEdit }) => {
   const year = date.getFullYear();
   const month = date.getMonth();
   const firstDayOfMonth = new Date(year, month, 1);
@@ -34,12 +35,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ date, tasks, onDayClick, on
     
     // Filter tasks that match this day exactly
     const dayTasks = tasks.filter(task => task.date === localDateStr);
+    const dayHolidays = holidays.filter(h => h.date === localDateStr);
     
     days.push(
       <CalendarDay
         key={i}
         day={rawDate}
         tasks={dayTasks}
+        holidays={dayHolidays}
         onDayClick={onDayClick}
         onToggleComplete={onToggleComplete}
         onDelete={onDelete}

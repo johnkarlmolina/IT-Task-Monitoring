@@ -7,3 +7,11 @@ export interface Task {
   completed: boolean;
 }
 
+export type HolidayType = 'Regular' | 'SpecialNonWorking' | 'SpecialWorking' | 'Holiday';
+
+export interface Holiday {
+  date: string; // YYYY-MM-DD
+  name: string;
+  type: HolidayType;
+}
+
