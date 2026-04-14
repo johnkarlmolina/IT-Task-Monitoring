@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Task } from '../interfaces';
+import type { Holiday, Task } from '../interfaces';
 import TaskItem from './TaskItem';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faClipboardList, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -7,6 +7,7 @@ import { faTimes, faClipboardList, faPlus } from '@fortawesome/free-solid-svg-ic
 interface DayModalProps {
   date: Date;
   tasks: Task[];
+  holidays?: Holiday[];
   onClose: () => void;
   onAddTask: (task: Omit<Task, 'id' | 'completed'>) => void;
   onToggleComplete: (id: number) => void;
@@ -14,10 +15,12 @@ interface DayModalProps {
   onEdit: (task: Task) => void;
 }
 
-const DayModal: React.FC<DayModalProps> = ({ date, tasks, onClose, onAddTask, onToggleComplete, onDelete, onEdit }) => {
+const DayModal: React.FC<DayModalProps> = ({ date, tasks, holidays = [], onClose, onAddTask, onToggleComplete, onDelete, onEdit }) => {
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('');
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
+
+  const hasHoliday = holidays.length > 0;
 
   // Focus input automatically
   useEffect(() => {
@@ -54,6 +57,20 @@ const DayModal: React.FC<DayModalProps> = ({ date, tasks, onClose, onAddTask, on
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} on this day
             </p>
+
+            {hasHoliday && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {holidays.map(h => (
+                  <span
+                    key={`${h.date}-${h.name}`}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60"
+                    title={`${h.name} (${h.type})`}
+                  >
+                    {h.name} • {h.type === 'Regular' ? 'Regular' : h.type === 'SpecialNonWorking' ? 'Special (Non-Working)' : h.type === 'SpecialWorking' ? 'Special (Working)' : 'Holiday'}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <button 
             type="button" 
@@ -94,7 +111,7 @@ const DayModal: React.FC<DayModalProps> = ({ date, tasks, onClose, onAddTask, on
             <input
               id="task-title-input"
               type="text"
-              placeholder="e.g., Doctor appointment"
+              placeholder="Add Task"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-2.5 sm:p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-500"

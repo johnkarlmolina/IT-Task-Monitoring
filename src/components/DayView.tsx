@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Task } from '../interfaces';
+import type { Holiday, Task } from '../interfaces';
 import TaskItem from './TaskItem';
 
 interface DayViewProps {
   date: Date;
   tasks: Task[];
+  holidays?: Holiday[];
   onToggleComplete: (id: number) => void;
   onDelete: (id: number) => void;
   onDayClick: (date: Date) => void;
   onEdit: (task: Task) => void;
 }
 
-const DayView: React.FC<DayViewProps> = ({ date, tasks, onToggleComplete, onDelete, onDayClick, onEdit }) => {
+const DayView: React.FC<DayViewProps> = ({ date, tasks, holidays = [], onToggleComplete, onDelete, onDayClick, onEdit }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +40,7 @@ const DayView: React.FC<DayViewProps> = ({ date, tasks, onToggleComplete, onDele
   }, [date]);
 
   const isToday = new Date().toDateString() === date.toDateString();
+  const hasHoliday = holidays.length > 0;
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -104,6 +106,20 @@ const DayView: React.FC<DayViewProps> = ({ date, tasks, onToggleComplete, onDele
           <div className={`h-[46px] w-[46px] rounded-full flex items-center justify-center text-[24px] font-medium ${isToday ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition'}`}>
             {date.getDate()}
           </div>
+
+          {hasHoliday && (
+            <div className="mt-2 flex flex-wrap justify-center gap-1.5 px-3">
+              {holidays.map(h => (
+                <span
+                  key={`${h.date}-${h.name}`}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 max-w-[260px] truncate"
+                  title={`${h.name} (${h.type})`}
+                >
+                  {h.name} • {h.type === 'Regular' ? 'Regular' : h.type === 'SpecialNonWorking' ? 'Special (Non-Working)' : h.type === 'SpecialWorking' ? 'Special (Working)' : 'Holiday'}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

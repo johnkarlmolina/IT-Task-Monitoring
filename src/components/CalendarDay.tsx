@@ -1,25 +1,27 @@
 import React from 'react';
-import type { Task } from '../interfaces';
+import type { Holiday, Task } from '../interfaces';
 import TaskItem from './TaskItem';
 
 interface CalendarDayProps {
   day: Date;
   tasks: Task[];
+  holidays?: Holiday[];
   onDayClick: (date: Date) => void;
   onToggleComplete: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (task: Task) => void;
 }
 
-const CalendarDay: React.FC<CalendarDayProps> = ({ day, tasks, onDayClick, onToggleComplete, onDelete, onEdit }) => {
+const CalendarDay: React.FC<CalendarDayProps> = ({ day, tasks, holidays = [], onDayClick, onToggleComplete, onDelete, onEdit }) => {
   const isToday = new Date().toDateString() === day.toDateString();
+  const hasHoliday = holidays.length > 0;
 
   return (
     <div 
       className={`relative group rounded-2xl p-2 flex flex-col transition-all duration-300 cursor-pointer overflow-hidden ${
         isToday 
           ? 'bg-blue-50 dark:bg-blue-900/60 border-4 border-blue-500 scale-[1.10] sm:scale-[1.15] z-50 shadow-2xl shadow-blue-500/30 h-[130px] sm:h-[150px]' 
-          : 'bg-white border dark:bg-gray-800 border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-200 h-[100px] sm:h-[120px]'
+          : `bg-white border dark:bg-gray-800 border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-200 h-[100px] sm:h-[120px] ${hasHoliday ? 'ring-2 ring-purple-200 dark:ring-purple-700/60' : ''}`
       }`} 
       onClick={() => onDayClick(day)}
     >
@@ -33,12 +35,22 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ day, tasks, onDayClick, onTog
         >
           {day.getDate()}
         </span>
-        <button 
-          className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all mr-1"
-          title="Add task"
-        >
-          +
-        </button>
+        <div className="flex flex-col items-end gap-1 mr-1 min-w-0">
+          {hasHoliday && (
+            <span
+              className="max-w-[90px] sm:max-w-[110px] truncate px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60"
+              title={holidays.map(h => h.name).join(' • ')}
+            >
+              {holidays.length === 1 ? holidays[0].name : `${holidays.length} holidays`}
+            </span>
+          )}
+          <button 
+            className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+            title="Add task"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div 

@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import CalendarGrid from './components/CalendarGrid';
 import DayModal from './components/DayModal';
 import DayView from './components/DayView';
-import type { Task } from './interfaces';
+import YearSummaryModal from './components/YearSummaryModal';
+import type { Holiday, Task } from './interfaces';
+import { getPhilippinesHolidaysFromApi } from './holidays/nager';
+import { getPhilippinesHolidaysForYear } from './holidays/ph';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight, faSun, faMoon, faCalendarDay, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faSun, faMoon, faCalendarDay, faCalendarAlt, faClipboardList } from '@fortawesome/free-solid-svg-icons';
 
 type ViewMode = 'month' | 'day';
 
@@ -25,6 +28,8 @@ const App: React.FC = () => {
     return [];
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isYearSummaryOpen, setIsYearSummaryOpen] = useState(false);
+  const [holidaysByYear, setHolidaysByYear] = useState<Record<number, Holiday[]>>({});
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check initial local storage or default to false
     if (typeof window !== 'undefined') {
@@ -50,6 +55,33 @@ const App: React.FC = () => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  const toLocalISODate = (d: Date) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+  const currentYear = currentDate.getFullYear();
+
+  const ensureHolidaysLoaded = async (year: number) => {
+    try {
+      const holidays = await getPhilippinesHolidaysFromApi(year);
+      setHolidaysByYear(prev => ({ ...prev, [year]: holidays }));
+    } catch {
+      // Fallback to a small built-in list (2026 only) if API fails.
+      const fallback = getPhilippinesHolidaysForYear(year);
+      setHolidaysByYear(prev => ({ ...prev, [year]: fallback }));
+    }
+  };
+
+  useEffect(() => {
+    if (holidaysByYear[currentYear]) return;
+    void ensureHolidaysLoaded(currentYear);
+  }, [currentYear, holidaysByYear]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    const selectedYear = selectedDate.getFullYear();
+    if (holidaysByYear[selectedYear]) return;
+    void ensureHolidaysLoaded(selectedYear);
+  }, [selectedDate, holidaysByYear]);
 
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
@@ -101,6 +133,10 @@ const App: React.FC = () => {
     setCurrentDate(new Date());
   };
 
+  const currentYearHolidays = holidaysByYear[currentYear] ?? [];
+  const dayViewISODate = toLocalISODate(currentDate);
+  const dayViewHolidays = currentYearHolidays.filter(h => h.date === dayViewISODate);
+
   return (
     <div className={`min-h-screen font-sans p-4 md:p-6 flex flex-col font-inter antialiased transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="w-full flex-grow flex flex-col max-w-[1600px] mx-auto h-full">
@@ -112,6 +148,15 @@ const App: React.FC = () => {
               className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
             >
               Today
+            </button>
+
+            <button
+              onClick={() => setIsYearSummaryOpen(true)}
+              className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center gap-2"
+              title="Show all tasks for this year"
+            >
+              <FontAwesomeIcon icon={faClipboardList} />
+              <span className="hidden sm:inline">Year Todos</span>
             </button>
             <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl items-center">
               <button 
@@ -186,6 +231,7 @@ const App: React.FC = () => {
             <CalendarGrid
               date={currentDate}
               tasks={tasks}
+              holidays={currentYearHolidays}
               onDayClick={handleDayClick}
               onToggleComplete={handleToggleComplete}
               onDelete={handleDelete}
@@ -195,6 +241,7 @@ const App: React.FC = () => {
             <DayView
               date={currentDate}
               tasks={tasks.filter(t => t.date === new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0])}
+              holidays={dayViewHolidays}
               onToggleComplete={handleToggleComplete}
               onDelete={handleDelete}
               onDayClick={handleDayClick}
@@ -207,10 +254,22 @@ const App: React.FC = () => {
           <DayModal 
             date={selectedDate} 
             tasks={tasks.filter(t => t.date === new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0])}
+            holidays={(holidaysByYear[selectedDate.getFullYear()] ?? []).filter(h => h.date === toLocalISODate(selectedDate))}
             onAddTask={handleAddTask} 
             onToggleComplete={handleToggleComplete}
             onDelete={handleDelete}
             onClose={() => setSelectedDate(null)} 
+            onEdit={handleEditTask}
+          />
+        )}
+
+        {isYearSummaryOpen && (
+          <YearSummaryModal
+            year={currentDate.getFullYear()}
+            tasks={tasks}
+            onClose={() => setIsYearSummaryOpen(false)}
+            onToggleComplete={handleToggleComplete}
+            onDelete={handleDelete}
             onEdit={handleEditTask}
           />
         )}
